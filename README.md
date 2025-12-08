@@ -1,4 +1,5 @@
 # Farmer Community App
+## https://farmer-community-bay.vercel.app/ 
 
 A simple Flask-based social media application for farmers to share experiences, tips, and connect with each other.
 
@@ -31,7 +32,7 @@ A simple Flask-based social media application for farmers to share experiences, 
    python app.py
    ```
 
-3. Open your browser and go to `http://localhost:5000`
+3. Open your browser and go to `https://farmer-community-bay.vercel.app/`
 
 ### Usage
 
