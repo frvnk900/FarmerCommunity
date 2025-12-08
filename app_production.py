@@ -5,6 +5,20 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import tempfile
 
+
+# Database configuration based on environment
+def get_db_path():
+    if os.environ.get("VERCEL"):
+        # In Vercel, we would use a database service
+        # For demo purposes, using a temp file (not persistent in serverless)
+        # In real production, replace with actual database service like PostgreSQL
+        return ':memory:'  # Use in-memory for serverless (not persistent)
+    else:
+        # For local development, use file-based SQLite
+        return 'farmer_community.db'
+
+DATABASE_PATH = get_db_path()
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'fallback_secret_key_for_development')
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
@@ -18,7 +32,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def init_db():
-    conn = sqlite3.connect('farmer_community.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
     # Create users table
@@ -73,7 +87,7 @@ def init_db():
     conn.close()
 
 def get_db_connection():
-    conn = sqlite3.connect('farmer_community.db')
+    conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -81,19 +95,19 @@ def get_db_connection():
 def index():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     conn = get_db_connection()
-
+    
     # Get posts with user info and like counts
     posts = conn.execute('''
-        SELECT p.*, u.username,
+        SELECT p.*, u.username, 
         (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) as like_count,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) as comment_count
         FROM posts p
         JOIN users u ON p.user_id = u.id
         ORDER BY p.created_at DESC
     ''').fetchall()
-
+    
     # Get comments for each post
     post_comments = {}
     for post in posts:
@@ -105,25 +119,25 @@ def index():
             ORDER BY c.created_at ASC
         ''', (post['id'],)).fetchall()
         post_comments[post['id']] = comments
-
+    
     # Get current user's like status for each post
     liked_posts = []
     if 'user_id' in session:
         liked_posts = [row[0] for row in conn.execute(
             'SELECT post_id FROM likes WHERE user_id = ?', (session['user_id'],)
         ).fetchall()]
-
+    
     conn.close()
-
+    
     return render_template('index.html', posts=posts, post_comments=post_comments, liked_posts=liked_posts)
 
 @app.route('/post/<int:post_id>')
 def view_post(post_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     conn = get_db_connection()
-
+    
     # Get the specific post
     post = conn.execute('''
         SELECT p.*, u.username
@@ -131,11 +145,11 @@ def view_post(post_id):
         JOIN users u ON p.user_id = u.id
         WHERE p.id = ?
     ''', (post_id,)).fetchone()
-
+    
     if not post:
         conn.close()
         return redirect(url_for('index'))
-
+    
     # Get comments for the post
     comments = conn.execute('''
         SELECT c.*, u.username
@@ -144,18 +158,18 @@ def view_post(post_id):
         WHERE c.post_id = ?
         ORDER BY c.created_at ASC
     ''', (post_id,)).fetchall()
-
+    
     # Get current user's like status for the post
     liked = False
     if 'user_id' in session:
         result = conn.execute(
-            'SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?',
+            'SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?', 
             (session['user_id'], post_id)
         ).fetchone()
         liked = result is not None
-
+    
     conn.close()
-
+    
     return render_template('post.html', post=post, comments=comments, liked=liked)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -211,34 +225,34 @@ def logout():
 def create_post_form():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     if request.method == 'POST':
         content = request.form.get('content', '')
         media_file = request.files.get('media')
-
+        
         if not content and not media_file:
             flash('Post must have content or media')
             return render_template('create_post.html')
-
+        
         media_type = None
         media_path = None
-
+        
         if media_file and allowed_file(media_file.filename):
             filename = secure_filename(media_file.filename)
             # Create a unique filename using timestamp
             name, ext = os.path.splitext(filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             unique_filename = f"{name}_{timestamp}{ext}"
-
+            
             media_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             media_file.save(media_path)
-
+            
             # Determine media type
             if ext.lower() in ['.png', '.jpg', '.jpeg', '.gif']:
                 media_type = 'image'
             elif ext.lower() in ['.mp4', '.mov', '.avi']:
                 media_type = 'video'
-
+        
         conn = get_db_connection()
         conn.execute('''
             INSERT INTO posts (user_id, content, media_type, media_path)
@@ -246,42 +260,42 @@ def create_post_form():
         ''', (session['user_id'], content, media_type, media_path))
         conn.commit()
         conn.close()
-
+        
         return redirect(url_for('index'))
-
+    
     return render_template('create_post.html')
 
 @app.route('/post_action', methods=['POST'])
 def create_post():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     content = request.form.get('content', '')
     media_file = request.files.get('media')
-
+    
     if not content and not media_file:
         flash('Post must have content or media')
         return redirect(url_for('create_post_form'))
-
+    
     media_type = None
     media_path = None
-
+    
     if media_file and allowed_file(media_file.filename):
         filename = secure_filename(media_file.filename)
         # Create a unique filename using timestamp
         name, ext = os.path.splitext(filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         unique_filename = f"{name}_{timestamp}{ext}"
-
+        
         media_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         media_file.save(media_path)
-
+        
         # Determine media type
         if ext.lower() in ['.png', '.jpg', '.jpeg', '.gif']:
             media_type = 'image'
         elif ext.lower() in ['.mp4', '.mov', '.avi']:
             media_type = 'video'
-
+    
     conn = get_db_connection()
     conn.execute('''
         INSERT INTO posts (user_id, content, media_type, media_path)
@@ -289,16 +303,16 @@ def create_post():
     ''', (session['user_id'], content, media_type, media_path))
     conn.commit()
     conn.close()
-
+    
     return redirect(url_for('index'))
 
 @app.route('/like/<int:post_id>')
 def like_post(post_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     conn = get_db_connection()
-
+    
     try:
         conn.execute('''
             INSERT INTO likes (user_id, post_id)
@@ -312,7 +326,7 @@ def like_post(post_id):
             WHERE user_id = ? AND post_id = ?
         ''', (session['user_id'], post_id))
         conn.commit()
-
+    
     conn.close()
     return redirect(request.referrer or url_for('index'))
 
@@ -320,9 +334,9 @@ def like_post(post_id):
 def like_post_from_post_page(post_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
+    
     conn = get_db_connection()
-
+    
     try:
         conn.execute('''
             INSERT INTO likes (user_id, post_id)
@@ -336,7 +350,7 @@ def like_post_from_post_page(post_id):
             WHERE user_id = ? AND post_id = ?
         ''', (session['user_id'], post_id))
         conn.commit()
-
+    
     conn.close()
     return redirect(url_for('view_post', post_id=post_id))
 
@@ -359,19 +373,18 @@ def add_comment(post_id):
     conn.commit()
     conn.close()
     
-    return redirect(request.referrer or url_for('index'))
+    return redirect(request.referrer or url_for('view_post', post_id=post_id))
 
-# Production configuration for Vercel
+# Production configuration
 if __name__ == '__main__':
+    # In production, this may not run, but init_db might be called elsewhere
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
-
-    init_db()
-    app.run(debug=True)
-elif os.environ.get('VERCEL'):
-    # In Vercel, we initialize the database when the app starts
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):
-        os.makedirs(app.config['UPLOAD_FOLDER'])
-    # Note: For true production on Vercel, you would need to use a persistent database
-    # service like PostgreSQL instead of SQLite, which is not persistent in serverless functions
-    init_db()
+    
+    if not os.environ.get("VERCEL"):
+        # Only initialize DB in development
+        init_db()
+        app.run(debug=True)
+    else:
+        # When deployed to Vercel, the init_db should be called appropriately
+        init_db()

@@ -235,7 +235,7 @@
             </div>
             
             <div class="post-actions">
-                <form method="POST" action="{{ url_for('like_post', post_id=post.id) }}" style="display:inline;">
+                <form method="POST" action="{{ url_for('like_post_from_post_page', post_id=post.id) }}" style="display:inline;">
                     <button type="submit" class="action-btn like-btn {% if liked %}active{% endif %}">
                         {% if liked %}<i class="fas fa-heart"></i> Unlike{% else %}<i class="far fa-heart"></i> Like{% endif %}
                     </button>
