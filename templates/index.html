@@ -235,12 +235,11 @@
                 {% endif %}
                 
                 <div class="post-actions">
-                    <form method="POST" action="{{ url_for('like_post', post_id=post.id) }}" style="display:inline;">
-                        <button type="submit" class="action-btn like-btn {% if post.id in liked_posts %}active{% endif %}">
-                            {% if post.id in liked_posts %}<i class="fas fa-heart"></i> Unlike{% else %}<i class="far fa-heart"></i> Like{% endif %}
-                        </button>
-                    </form>
-                    <span><i class="fas fa-heart"></i> {{ post.like_count }}</span>
+                    <button class="action-btn like-btn {% if post.id in liked_posts %}active{% endif %}" onclick="toggleLike({{ post.id }}, this)">
+                        <i class="far fa-heart"></i>
+                        <span class="like-text">{% if post.id in liked_posts %}Unlike{% else %}Like{% endif %}</span>
+                    </button>
+                    <span><i class="fas fa-heart"></i> <span id="like-count-{{ post.id }}">{{ post.like_count }}</span></span>
                     <span><i class="fas fa-comment"></i> {{ post.comment_count }}</span>
                     <a href="{{ url_for('view_post', post_id=post.id) }}" class="view-post-btn"><i class="fas fa-eye"></i> View</a>
                 </div>
@@ -274,5 +273,48 @@
     <a href="{{ url_for('create_post_form') }}" class="floating-post-btn">
         <i class="fas fa-plus"></i>
     </a>
+
+    <script>
+        async function toggleLike(postId, buttonElement) {
+            try {
+                const response = await fetch(`/api/like/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        // Update the button appearance
+                        const likeBtn = buttonElement;
+                        const likeText = likeBtn.querySelector('.like-text');
+                        const likeIcon = likeBtn.querySelector('i');
+
+                        if (data.action === 'liked') {
+                            likeBtn.classList.add('active');
+                            likeText.textContent = 'Unlike';
+                            likeIcon.className = 'fas fa-heart';
+                        } else {
+                            likeBtn.classList.remove('active');
+                            likeText.textContent = 'Like';
+                            likeIcon.className = 'far fa-heart';
+                        }
+
+                        // Update the like count
+                        const likeCountElement = document.getElementById(`like-count-${postId}`);
+                        if (likeCountElement) {
+                            likeCountElement.textContent = data.like_count;
+                        }
+                    }
+                } else {
+                    console.error('Failed to toggle like');
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+            }
+        }
+    </script>
 </body>
 </html>

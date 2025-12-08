@@ -235,11 +235,12 @@
             </div>
             
             <div class="post-actions">
-                <form method="POST" action="{{ url_for('like_post_from_post_page', post_id=post.id) }}" style="display:inline;">
-                    <button type="submit" class="action-btn like-btn {% if liked %}active{% endif %}">
-                        {% if liked %}<i class="fas fa-heart"></i> Unlike{% else %}<i class="far fa-heart"></i> Like{% endif %}
-                    </button>
-                </form>
+                <button class="action-btn like-btn {% if liked %}active{% endif %}" onclick="toggleLike({{ post.id }}, this)">
+                    <i class="far fa-heart"></i>
+                    <span class="like-text">{% if liked %}Unlike{% else %}Like{% endif %}</span>
+                </button>
+                <span><i class="fas fa-heart"></i> <span id="like-count-{{ post.id }}">{{ post.like_count }}</span> likes</span>
+                <span><i class="fas fa-comment"></i> {{ post.comment_count }} comments</span>
             </div>
             
             <div class="comments-section">
@@ -266,5 +267,48 @@
             </div>
         </div>
     </div>
+
+    <script>
+        async function toggleLike(postId, buttonElement) {
+            try {
+                const response = await fetch(`/api/like/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        // Update the button appearance
+                        const likeBtn = buttonElement;
+                        const likeText = likeBtn.querySelector('.like-text');
+                        const likeIcon = likeBtn.querySelector('i');
+
+                        if (data.action === 'liked') {
+                            likeBtn.classList.add('active');
+                            likeText.textContent = 'Unlike';
+                            likeIcon.className = 'fas fa-heart';
+                        } else {
+                            likeBtn.classList.remove('active');
+                            likeText.textContent = 'Like';
+                            likeIcon.className = 'far fa-heart';
+                        }
+
+                        // Update the like count
+                        const likeCountElement = document.getElementById(`like-count-${postId}`);
+                        if (likeCountElement) {
+                            likeCountElement.textContent = data.like_count;
+                        }
+                    }
+                } else {
+                    console.error('Failed to toggle like');
+                }
+            } catch (error) {
+                console.error('Error toggling like:', error);
+            }
+        }
+    </script>
 </body>
 </html>

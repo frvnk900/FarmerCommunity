@@ -59,20 +59,23 @@ A simple Flask-based social media application for farmers to share experiences, 
 
 ### Important Note about Production Deployment
 
-This application uses SQLite for simplicity, but **SQLite is not suitable for production serverless environments** like Vercel. SQLite databases require persistent file storage, which serverless functions don't provide. For a real production deployment, you would need to:
+This application now uses a JSON file for data storage, which is more compatible with serverless environments than SQLite. However, **JSON file storage is still not ideal for production** in serverless environments like Vercel because:
 
-1. Replace SQLite with a database service like PostgreSQL or MySQL
-2. Update the database connection logic in `app.py`
-3. Use a database connection pooling library like SQLAlchemy with a cloud database
+1. The file system is ephemeral and doesn't persist between function invocations
+2. Multiple concurrent requests may cause race conditions
+3. Data is still not persistent across deployments
 
-For demonstration purposes, this application will work in development but won't maintain data in a serverless production environment.
+For a real production deployment, you would need to use a proper database service like PostgreSQL or MySQL.
+
+This implementation will work for demonstration purposes but keep in mind that data may be lost during deployments or under heavy load.
 
 ### Production Configuration
 
 If deploying to Vercel:
 1. The project structure is already configured with `vercel.json`
-2. Make sure the `/static/uploads` directory has appropriate permissions
-3. For file uploads to work properly in production, you may need to store files in a cloud storage service instead of local filesystem
+2. The application uses thread locking to handle concurrent access to the JSON file
+3. Make sure the `/static/uploads` directory has appropriate permissions
+4. For file uploads to work properly in production, you may need to store files in a cloud storage service instead of local filesystem
 
 ### Environment Variables
 
