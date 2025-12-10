@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>{{ profile_user.username }}</h2>
+  <p>Member since: {{ profile_user.created_at.strftime('%Y-%m-%d') if profile_user.created_at else '' }}</p>
+  <h3>Posts</h3>
+  {% for p in posts %}
+    <div class="post">
+      {% if p.photo_id %}
+        <img src="{{ url_for('image', id=p.photo_id) }}" class="post-photo">
+      {% endif %}
+      {% if p.text %}<p>{{ p.text }}</p>{% endif %}
+      <div>Likes: {{ p.likes|length }}</div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

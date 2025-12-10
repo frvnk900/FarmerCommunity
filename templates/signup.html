@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card auth-card">
-  <h2>Login</h2>
+  <h2>Sign Up</h2>
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post">
     <label>Username</label>
     <input name="username" required>
     <label>Password</label>
     <input name="password" type="password" required>
-    <button type="submit">Login</button>
+    <button type="submit">Sign Up</button>
   </form>
-  <p>No account? <a href="{{ url_for('signup') }}">Sign up</a></p>
+  <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
 </div>
 {% endblock %}

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmers Community</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    function postLike(id){
+      fetch('/post/'+id+'/like', {method:'POST'}).then(r=>r.json()).then(j=>{
+        if(j.error){ 
+          showNotification(j.error, 'error');
+          return; 
+        }
+        const el = document.getElementById('likes-'+id);
+        if(el) el.innerText = j.likes.length;
+        
+        // Add visual feedback
+        const heart = el.closest('.like-btn');
+        if(heart) {
+          heart.classList.add('liked');
+          setTimeout(() => heart.classList.remove('liked'), 300);
+        }
+      });
+    }
+    
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        background: ${type === 'error' ? '#b00020' : '#2e8b57'};
+        color: white;
+        z-index: 9999;
+        animation: slideIn 0.3s ease-out;
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+    
+    // Add notification styles
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+      .notification {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-weight: 500;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</head>
+<body>
+  <!-- ===== NAVIGATION ===== -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <a href="{{ url_for('home') }}" style="color: black; text-decoration: none;">
+        <i class="fas fa-seedling" style="margin-right: 8px;"></i>
+        Farmers Community
+      </a>
+    </div>
+    
+    <nav class="topbar-nav">
+      {% if user %}
+        <a href="{{ url_for('home') }}" class="nav-link">
+          <i class="fas fa-home"></i>
+          <span class="nav-text">Home</span>
+        </a>
+        <a href="{{ url_for('profile', username=user.username) }}" class="nav-link">
+          <i class="fas fa-user"></i>
+          <span class="nav-text">Profile</span>
+        </a>
+        <a href="{{ url_for('logout') }}" class="nav-link">
+          <i class="fas fa-sign-out-alt"></i>
+          <span class="nav-text">Logout</span>
+        </a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="nav-link">
+          <i class="fas fa-sign-in-alt"></i>
+          <span class="nav-text">Login</span>
+        </a>
+        <a href="{{ url_for('register') }}" class="nav-link">
+          <i class="fas fa-user-plus"></i>
+          <span class="nav-text">Register</span>
+        </a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="messages-container">
+          {% for category, message in messages %}
+            <div class="notification {{ category if category in ['error', 'success', 'warning'] else 'success' }}">
+              <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'error' else 'info-circle' }}"></i>
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    
+    <!-- Page Content -->
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ===== FLOATING ACTION BUTTON ===== -->
+  {% if user %}
+    <a href="{{ url_for('new_post') }}" class="floating-action-btn" title="Create New Post">
+      <i class="fas fa-plus"></i>
+    </a>
+  {% endif %}
+
+  <!-- Add missing CSS for new classes -->
+  <style>
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .nav-text {
+      display: inline-block;
+    }
+    
+    @media (max-width: 768px) {
+      .nav-text {
+        display: none;
+      }
+      .nav-link {
+        padding: 8px 12px;
+        font-size: 1.2rem;
+      }
+    }
+    
+    .messages-container {
+      margin: 20px 0;
+    }
+    
+    .notification {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    
+    .notification.success {
+      background-color: rgb(46, 139, 86);
+      color: var(--success);
+      border-left: 4px solid var(--success);
+    }
+    
+    .notification.error {
+      background-color: rgba(176, 0, 32, 0.744);
+      color: var(--error);
+      border-left: 4px solid var(--error);
+    }
+    
+    .notification.warning {
+      background-color: rgb(255, 153, 0);
+      color: var(--warning);
+      border-left: 4px solid var(--warning);
+    }
+    
+    .like-btn.liked {
+      animation: heartBeat 0.3s ease;
+    }
+    
+    @keyframes heartBeat {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</body>
+</html>

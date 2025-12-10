@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Search results for '{{ q }}'</h2>
+  {% if results %}
+    <ul>
+    {% for r in results %}
+      <li><a href="{{ url_for('profile', username=r.username) }}">{{ r.username }}</a></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No users found.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %} {% block content %}
+<div class="searchbar">
+  <form action="{{ url_for('search') }}" method="get">
+    <input name="q" placeholder="Search users" />
+    <button type="submit">Search</button>
+  </form>
+</div>
+<div class="feed">
+  {% for p in posts %}
+  <div class="post">
+    <div class="post-head">
+      <a href="{{ url_for('profile', username=user_map[p.user_id]) }}"
+        >{{ user_map[p.user_id] }}</a
+      >
+      <span class="time"
+        >{{ p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else ''
+        }}</span
+      >
+    </div>
+    {% if p.photo_id %}
+    <img src="{{ url_for('image', id=p.photo_id) }}" class="post-photo" />
+    {% endif %} {% if p.text %}
+    <p class="post-text">{{ p.text }}</p>
+    {% endif %}
+    <div class="post-actions">
+      <button onclick="postLike('{{ p._id }}')">Like</button>
+      <span id="likes-{{ p._id }}">{{ p.likes|length }}</span>
+      <form
+        action="{{ url_for('comment_post', id=p._id) }}"
+        method="post"
+        class="comment-form"
+      >
+        <input name="comment" placeholder="Write a comment" />
+        <button type="submit">Comment</button>
+      </form>
+    </div>
+    <div class="comments">
+      {% for c in p.comments %}
+      <div class="comment">
+        <strong>{{ user_map.get(c.user_id, 'User') }}:</strong> {{ c.text }}
+      </div>
+
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
