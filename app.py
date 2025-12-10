@@ -100,7 +100,15 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+    
+import traceback
 
+@app.errorhandler(500)
+def internal_error(error):
+    return f"""
+    <h1>500 Internal Server Error</h1>
+    <pre>{traceback.format_exc()}</pre>
+    """, 500
 # ---------------------------------------------
 # HOME FEED
 # ---------------------------------------------
